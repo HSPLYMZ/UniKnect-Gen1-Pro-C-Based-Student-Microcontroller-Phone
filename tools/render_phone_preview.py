@@ -1,0 +1,83 @@
+"""Render the actual ARM C UI and assemble the WouoUI preview gallery.
+
+Sample dates, LTE bars, SMS and call states are offline fixtures. These images
+do not represent a board capture or establish physical frame rate.
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+from urllib.parse import quote
+
+ROOT = Path(__file__).resolve().parents[1]
+# Animation cadence is shared with the firmware configuration.
+import re
+DISPLAY_MS = int(re.search(r'#define\s+CFG_DISPLAY_MS\s+(\d+)',
+                          (ROOT/'firmware/config/app_config.h').read_text(encoding='utf-8')).group(1))
+PAGES = [('home', '数字时钟'), ('contact', '家人联系入口'), ('sms', '短信查看入口'),
+         ('settings','系统设置入口'),('settingsmenu','系统设置'),('rotation','显示方向'),('calibration','标定说明'),('settings_failed','保存失败'),('settings_pending','待保存'),
+         ('signal','信号参数入口'),('signalinfo','信号参数夹具'),('signal_empty','未查询参数'),
+         ('signal_bottom','参数末尾'),('signal_deferred','通话中暂缓'),('signal_failed','参数读取失败'),
+         ('contacts', '已配置联系人'), ('inbox_empty', '暂无短信'), ('inbox', '短信列表夹具'),
+         ('inbox_bottom', '列表末项'), ('message', '短信阅读夹具'), ('call', '通话夹具'),
+         ('incoming', '来电夹具'), ('offline', '无时间和信号数据'),
+         ('nav_select', '底栏选择'), ('nav_home', '底栏主界面'), ('nav_back', '底栏返回'),
+         ('dialing', '呼叫夹具'), ('ended', '结束夹具'), ('joystick', '手动标定')]
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--deps', type=Path, default=None)
+    ap.add_argument('--skip-tests', action='store_true')
+    ap.add_argument('--output',type=Path,default=ROOT / 'docs/images/wououi')
+    ap.add_argument('--html',type=Path,default=ROOT / 'docs/phone_preview.html')
+    args = ap.parse_args()
+    images = args.output.resolve()
+    images.mkdir(parents=True, exist_ok=True)
+    if not args.skip_tests:
+        subprocess.run([sys.executable, str(ROOT / 'tests/run_arm_tests.py')]+(['--deps',str(args.deps)] if args.deps else [])+[
+                        '--output', str(ROOT / '.tmp/wououi/arm_tests'),
+                        '--preview-dir', str(images)], cwd=ROOT, check=True)
+    from PIL import Image, ImageDraw, ImageFont
+    try:font = ImageFont.truetype('consola.ttf',17)
+    except OSError:font = ImageFont.load_default(size=17)
+    labels = ['home', 'contact', 'sms', 'nav_select', 'contacts', 'inbox_empty']
+    canvas = Image.new('RGB', (1056, 680), '#dedede')
+    draw = ImageDraw.Draw(canvas)
+    draw.text((24, 12), 'UNIKNECT / WOUOUI / ACTUAL C RENDER / OFFLINE FIXTURES', font=font, fill='black')
+    for i, label in enumerate(labels):
+        x, y = 24 + i % 3 * 344, 48 + i // 3 * 314
+        draw.text((x, y), label.upper(), font=font, fill='black')
+        with Image.open(images / f'upright_{label}_0.png') as img:
+            canvas.paste(img.resize((320, 256), Image.Resampling.NEAREST), (x, y + 27))
+    canvas.save(images / 'overview.png')
+    frames = []
+    for label in ['home'] + [f'slide_{i}' for i in range(1, 17)] + ['contact']:
+        with Image.open(images / f'upright_{label}_0.png') as img:
+            frames.append(img.copy())
+    frames[0].save(images / 'carousel.gif', save_all=True, append_images=frames[1:],
+                   duration=[600] + [DISPLAY_MS] * 16 + [800], loop=0)
+    html = '''<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>UniKnect WouoUI 实际 C 渲染预览</title>
+<style>body{margin:24px auto;padding:0 20px;max-width:1100px;background:#eee;color:#111;font:16px system-ui}p{line-height:1.7}button{padding:9px 15px;margin:4px;border:1px solid #777;background:white;cursor:pointer}button.active{background:black;color:white}.views{display:flex;gap:25px;flex-wrap:wrap}img{max-width:100%;height:auto;image-rendering:pixelated;border:1px solid black}.views img{width:480px}h1{font-size:26px}h2{font-size:18px}</style>
+<h1>UniKnect · WouoUI 五页交互</h1>
+<p>图片由固件实际 C 绘图代码在 ARM 模拟器生成；时间、信号、短信与通话是离线测试夹具，不能视为真实联网状态或实板截图。正常产品不注入这些数据。160×128：状态栏 16 px、功能区 92 px、操作栏 20 px；四方向仅用于排版诊断，默认固定横屏。</p>
+<div id="pages"></div><div id="angles"></div><p id="caption" aria-live="polite"></p>
+<div class="views"><div><h2>正向阅读</h2><img id="upright" alt="实际 C 渲染，正向阅读"></div><div><h2>物理面板坐标</h2><img id="panel" alt="160×128 面板坐标"></div></div>
+<h2>WouoUI 非线性页面滚动</h2><img src="images/wououi/carousel.gif" alt="实际 C 帧序列动画">
+<p>功能区左右循环时钟、家人联系、短信查看、信号参数、系统设置；向下到操作栏，向上回原功能区。底栏左右到边缘停止，中键执行。列表下推到最后一项后再次下推进入底栏，详情滚到底后同样操作。每次拨动只执行一次，完全释放后才接受下一次动作；没有长按或连发。</p>
+<p>家人联系入口确认只打开联系人列表，列表再次确认才提交真实呼叫。主界面和返回只导航，通话继续后台运行。没有短信数据时显示“暂无短信”；当前尚无模组短信拉取服务，保留类型化短信事件接口。</p>
+<script>let page='home',angle=0;const pages=__PAGES__;
+function draw(){document.querySelector('#pages').innerHTML=pages.map(([p,label])=>`<button class="${page===p?'active':''}" onclick="page='${p}';draw()">${label}</button>`).join('');document.querySelector('#angles').innerHTML=[0,90,180,270].map(a=>`<button class="${angle===a?'active':''}" onclick="angle=${a};draw()">${a}°</button>`).join('');document.querySelector('#upright').src=`images/wououi/upright_${page}_${angle}.png`;document.querySelector('#panel').src=`images/wououi/panel_${page}_${angle}.png`;document.querySelector('#caption').textContent=pages.find(p=>p[0]===page)[1]+' · '+angle+'°';}draw();</script></html>'''
+    target = args.html.resolve()
+    target.parent.mkdir(parents=True,exist_ok=True)
+    prefix=quote(Path(os.path.relpath(images,target.parent)).as_posix(),safe='/')
+    html=html.replace('images/wououi/',prefix+'/')
+    target.write_text(html.replace('__PAGES__', json.dumps(PAGES, ensure_ascii=False)), encoding='utf-8')
+    print('Preview gallery:', target)
+
+
+if __name__ == '__main__':
+    main()

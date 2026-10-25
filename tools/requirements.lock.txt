@@ -1,0 +1,6 @@
+cmake==4.4.4
+ninja==1.13.2
+pillow==13.0.0
+pillow_heif==1.8.1
+pypdf==6.21.1
+pyserial==3.5

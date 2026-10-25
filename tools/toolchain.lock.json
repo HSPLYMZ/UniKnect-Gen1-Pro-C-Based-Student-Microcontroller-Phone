@@ -1,0 +1,12 @@
+{
+  "version": "13.3.rel1 / GCC 13.3.1",
+  "publisher": "Arm",
+  "archive_sha256": null,
+  "note": "Original archive digest was not recorded; no upstream commit or publisher digest is invented. Install from the Arm official release.",
+  "observed_files": {
+    "bin/arm-none-eabi-gcc.exe": "0f34a52ca27f1819322eba3a49a771ba757821c7f38769171413a6e091158ead",
+    "bin/arm-none-eabi-gdb.exe": "9bf61d2f28da0b84ed2f5a7119e7feb22ab42011889e8c7a963ce989de64010b",
+    "bin/arm-none-eabi-objcopy.exe": "b0b80ad85e53ca2785513b7905f97bd8458be46137c2e92a998c7bf202cb831b",
+    "bin/arm-none-eabi-size.exe": "5e868d0db3242913c8100cec17470911e1dc739257f3a37077f879c7a6047b4d"
+  }
+}

@@ -1,0 +1,8 @@
+* text=auto eol=lf
+firmware/third_party/** -text
+firmware/fonts/** -text
+*.png binary
+*.gif binary
+*.bin binary
+*.elf binary
+*.hex -text

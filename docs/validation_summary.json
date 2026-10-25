@@ -1,0 +1,21 @@
+{
+  "version": "1.2.1-privacy",
+  "public_build_contact_count": 0,
+  "arm_suites": 19,
+  "tool_tests": 17,
+  "builds": [
+    "default",
+    "offline",
+    "lcd-diagnostic"
+  ],
+  "elf_checks": "all three passed",
+  "freertos_integration": "passed",
+  "private_number_file_in_repository": false,
+  "public_firmware_contains_original_private_number": false,
+  "private_build_flashed_separately": true,
+  "private_build_readback_verified": true,
+  "user_contact_display_confirmed": true,
+  "no_automatic_call": true,
+  "public_firmware_board_test": "not flashed; private build checked separately",
+  "host": "Windows; external installed Python and ARM GNU 13.3.rel1 reused"
+}

@@ -1,0 +1,12 @@
+/.venv/
+/.tmp/
+/tmp/
+/firmware/build/
+/build/
+/tools/arm-gnu-toolchain/
+/tools/downloads/
+/firmware/config/phone_number.local.h
+__pycache__/
+*.pyc
+*.log
+*.local.h
